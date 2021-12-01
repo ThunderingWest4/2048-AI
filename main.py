@@ -1,3 +1,4 @@
+from pygame.constants import K_DOWN
 from game import *
 import pygame
 from agent import *
@@ -18,7 +19,19 @@ if __name__ == "__main__":
     while running:
         gameBoard.render()
 
+
+
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_q:
+                if event.key == pygame.K_DOWN:
+                    gameBoard.act(0)
+                elif event.key == pygame.K_UP:
+                    gameBoard.act(1)
+                elif event.key == pygame.K_LEFT:
+                    gameBoard.act(2)
+                elif event.key == pygame.K_RIGHT:
+                    gameBoard.act(3)
+                elif event.key == pygame.K_q:
                     pygame.quit()
+                    a = 3
+                    a[0]
