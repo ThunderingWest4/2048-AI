@@ -13,7 +13,6 @@ if __name__ == "__main__":
     gameBoard.reset((4, 4)) # making sure it has default values
 
     running = True
-
     # gameloop
     # play through the ame, choose between greedy strategy and the net predicting
     while running:
@@ -31,6 +30,9 @@ if __name__ == "__main__":
                     gameBoard.act(2)
                 elif event.key == pygame.K_RIGHT:
                     gameBoard.act(3)
+                elif event.key == pygame.K_r:
+                    # quick board reset for testing purposes
+                    gameBoard.reset((4, 4))
                 elif event.key == pygame.K_q:
                     pygame.quit()
                     a = 3
