@@ -38,94 +38,10 @@ class board():
         """
         # action is either 0, 1, 2, 3 where
         # 0=up, 1=down, 2=left, 3=right
-
-        # if(move == 2):
-        #     for i in range(3):
-        #         # merging the same cells
-        #         for j in range(4):
-        #             if (self.grid[i][j].val == self.grid[i+1][j].val) and (self.grid[i][j].merged == self.grid[i+1][j].merged == False):
-        #                 self.grid[i+1][j] = void()
-        #                 self.grid[i][j].val *= 2
-        #                 self.grid[i][j].merged = True
-                
-        #     # bubble up to occupy the empty spots
-        #     # transpose the grid, take the specific array index, do the bubbling up magic, reinsert new one, re-transpose back to normal
-            
-        #     gridT = np.transpose(self.grid)
-        #     newGrid = []
-        #     for row in gridT:
-        #         newR = []
-        #         for item in row:
-        #             if not item.isEmpty:
-        #                 newR.append(item)
-
-        #         # PADDING THE EMPTY SPOTS WITH VOID ITEMS
-        #         for i in range(4-len(newR)):
-        #             newR.append(void())
-
-        #         newGrid.append(newR)
-
-        #     newGrid = np.transpose(newGrid)
-        #     self.grid = newGrid
-
-        #     # if its stupid but it works, its not stupid :)
-        #     for i in range(3):
-        #         # merging the same cells
-        #         for j in range(4):
-        #             if (self.grid[i][j].val == self.grid[i+1][j].val) and (self.grid[i][j].merged == self.grid[i+1][j].merged == False):
-        #                 self.grid[i+1][j] = void()
-        #                 self.grid[i][j].val *= 2
-        #                 self.grid[i][j].merged = True
-
-        #     for i in range(self.dimX):
-        #         for j in range(self.dimY):
-        #             self.grid[(i,j)].merged = False
-
-        # elif(move == 3):
-
-        #     for i in range(3):
-        #         # merging the same cells
-        #         for j in range(4):
-        #             if (self.grid[i][j].val == self.grid[i-1][j].val) and (self.grid[i][j].merged == self.grid[i-1][j].merged == False):
-        #                 self.grid[i-1][j] = void()
-        #                 self.grid[i][j].val *= 2
-        #                 self.grid[i][j].merged = True
-                
-        #     # bubble up to occupy the empty spots
-        #     # transpose the grid, take the specific array index, do the bubbling up magic, reinsert new one, re-transpose back to normal
-            
-        #     gridT = np.transpose(self.grid)
-        #     newGrid = []
-        #     for row in gridT:
-        #         newR = []
-        #         for item in row:
-        #             if not item.isEmpty:
-        #                 newR.append(item)
-
-        #         # PADDING THE EMPTY SPOTS WITH VOID ITEMS
-        #         for i in range(4-len(newR)):
-        #             newR.insert(0, void())
-
-
-        #         newGrid.append(newR)
-
-        #     newGrid = np.transpose(newGrid)
-        #     self.grid = newGrid
-
-        #     # if its stupid but it works, its not stupid :)
-        #     for i in range(4):
-        #         # merging the same cells
-        #         for j in range(4):
-        #             if (self.grid[i][j].val == self.grid[i-1][j].val) and (self.grid[i][j].merged == self.grid[i-1][j].merged == False):
-        #                 self.grid[i-1][j] = void()
-        #                 self.grid[i][j].val *= 2
-        #                 self.grid[i][j].merged = True
-
-        #     for i in range(self.dimX):
-        #         for j in range(self.dimY):
-        #             self.grid[(i,j)].merged = False
-
         game = []
+
+        # method functions are weird, idk why they're like this but don't question it
+        # i blame the person who i borrowed the code from
 
         if(move == 0):
             game, _ = self.right(self.grid)
@@ -147,8 +63,21 @@ class board():
 
         self.render()
 
-        if self.isGameOver():
-            return
+        compl = self.isComplete()
+        done = False
+        if compl == 2048:
+            # computer won
+            self.score += 2048 # big bonus
+            done = True
+        elif compl == 1:
+            # you lost
+            done = True
+        else:
+            # game not over
+            pass
+
+
+        
                 
     def isEqual(self, mat1, mat2):
         if(np.size(mat1) != np.size(mat2)):
@@ -161,15 +90,23 @@ class board():
         
         return equal
 
-    def isGameOver(self):
+    def isComplete(self):
+        has2048 = False
         s = 0
         for i in range(4):
             for j in range(4):
+                if(self.grid[i][j].val == 2048):
+                    has2048 = True
+                    return 2048
                 for k in [j+1, j-1]:
                     if k >= 0 and k <= 3:
                         s += self.grid[i][j].val == self.grid[i][k].val
         
-        return not (s > 0) # s>0 means that at least one is true therefore at least one possible move
+        # s>0 means that at least one is true therefore at least one possible move
+        if s>0:
+            return 1
+        else:
+            return -1
 
         
     def spawnNewTile(self):
@@ -188,6 +125,10 @@ class board():
 
     def render(self):
 
+        pg.display.set_caption(f"Score: {self.score}")
+
+        self.scrn.fill((0, 0, 0)) # clear screen before rendering
+
         xIncr = self.res[0] // self.dimX
         yIncr = self.res[1] // self.dimY
 
@@ -200,6 +141,9 @@ class board():
                 pg.draw.rect(self.scrn, col, pg.Rect(i*xIncr+5, j*yIncr+5, xIncr-10, yIncr-10))
 
                 text_surface = self.font.render(str(cell.val), True, textCol)
+
+                # dest
+
                 self.scrn.blit(text_surface, dest=((i*xIncr+55), (j*yIncr+40)))
 
 
@@ -240,6 +184,8 @@ class board():
             for j in range(self.dimY-1):
                 if mat[i][j].val == mat[i][j+1].val and mat[i][j].val != 0:
                     mat[i][j].val *= 2
+                    # incr score
+                    self.score += mat[i][j].val
                     mat[i][j+1] = void()
                     done = True
         return mat, done
