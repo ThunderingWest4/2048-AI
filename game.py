@@ -143,8 +143,19 @@ class board():
                 text_surface = self.font.render(str(cell.val), True, textCol)
 
                 # dest
+                l = len(str(cell.val))
 
-                self.scrn.blit(text_surface, dest=((i*xIncr+55), (j*yIncr+40)))
+                d = ()
+                if l <= 1:
+                    d = ((i*xIncr+55), (j*yIncr+40))
+                elif l == 2:
+                    d = ((i*xIncr+40), (j*yIncr+40))
+                elif l == 3:
+                    d = ((i*xIncr+15), (j*yIncr+40))
+                elif l == 4:
+                    d = ((i*xIncr), (j*yIncr+40))
+
+                self.scrn.blit(text_surface, dest=d)
 
 
         pg.display.flip()
