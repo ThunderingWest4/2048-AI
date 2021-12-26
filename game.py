@@ -32,6 +32,14 @@ class board():
         self.score = 0
         self.grid[random.randint(0, 3)][random.randint(0, 3)] = cell()
 
+        self.done = False
+
+        return self.grid # initial state
+
+    def sample(self):
+        # generate a random action
+        return np.random.randint(0, 4)
+
     def act(self, move: int):
         """
         :param int move: an int in range [0, 3] representing the move where 0=up, 1=down, 2=left, 3=right
@@ -39,6 +47,12 @@ class board():
         # action is either 0, 1, 2, 3 where
         # 0=up, 1=down, 2=left, 3=right
         game = []
+
+        # jank getting the net reward but idk
+        # taking score at beginning of round, doing the stuff, then finding the difference
+        # for net reward
+        scoreInit = self.score
+
 
         # method functions are weird, idk why they're like this but don't question it
         # i blame the person who i borrowed the code from
@@ -53,7 +67,7 @@ class board():
             game, _ = self.down(self.grid)
         
         # print(game, self.grid)
-        # print(np.size(game), np.size(self.grid))
+        # print(np.size(game), np.size(self.grid), move)
         equalMats = self.isEqual(self.grid, game)
         # print(a)
         if not equalMats:
@@ -64,24 +78,29 @@ class board():
         self.render()
 
         compl = self.isComplete()
-        done = False
+        self.done = False
+        bonus = self.score - scoreInit
         if compl == 2048:
             # computer won
-            self.score += 2048 # big bonus
-            done = True
-        elif compl == 1:
+            bonus += 2048 # big bonus
+            self.done = True
+        elif compl == -1:
             # you lost
-            done = True
+            self.done = True
+            bonus += -2048
         else:
             # game not over
             pass
-
-
         
+        self.score += bonus
+
+        return (self.grid, bonus, self.done)
                 
     def isEqual(self, mat1, mat2):
         if(np.size(mat1) != np.size(mat2)):
-            raise KeyError("bad size")
+            self.visMat(mat1)
+            self.visMat(mat2)
+            raise KeyError("bad size " + str(mat1) + " " + str(mat2))
 
         equal = True
         for i in range(self.dimX):
@@ -89,6 +108,16 @@ class board():
                 equal = equal and (mat1[i][j].val == mat2[i][j].val)
         
         return equal
+
+    def visMat(self, mat):
+        s = ""
+        for i, x in enumerate(mat):
+            s2 = ""
+            for j, e in enumerate(x):
+                s2 += str(e.val) + ","
+            s+=s2+"\n"
+        print(s)
+
 
     def isComplete(self):
         has2048 = False
@@ -100,7 +129,7 @@ class board():
                     return 2048
                 for k in [j+1, j-1]:
                     if k >= 0 and k <= 3:
-                        s += self.grid[i][j].val == self.grid[i][k].val
+                        s += (self.grid[i][j].val == self.grid[i][k].val) or (self.grid[i][k].val == 0)
         
         # s>0 means that at least one is true therefore at least one possible move
         if s>0:
