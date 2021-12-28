@@ -4,6 +4,11 @@ import pygame
 from agent import *
 import matplotlib.pyplot as plt
 
+"""
+ISSUE: EACH ACTION GIVES IT A REWARD SO IT KEEPS PURSUING IMMEDIATE REWARDS RATHER THAN A LONG TERM WIN
+SOLUTION: RNN? OR MAYBE WEIGHTING THE REWARDS BASED ON TIME TO ACHIEVE REWARD
+"""
+
 pygame.init() # initiating the module
 res = (600, 600) # setting the height, length of the window. easier to store in a variable for accessing later in program
 scrn = pygame.display.set_mode(res) # giving you a surface of said resolution, you need this to draw shapes onto
@@ -17,7 +22,7 @@ max_eps = 1
 min_eps = 0.01
 eps_decay = 0.01
 
-player = DQNAgent((4, 4), 4, 30_000, epsilon, min_eps, max_eps, eps_decay)
+player = CNNAgent((4, 4), 4, 30_000, epsilon, min_eps, max_eps, eps_decay)
 
 # collecting initial experiences
 min_exp = 2_000
@@ -25,15 +30,16 @@ idx = 0
 for i in range(min_exp):
     state = gameBoard.reset((4, 4))
     done = False
+    ep_len = 0
     while not done:
         action = gameBoard.sample()
 
         # observation: [state, action, reward, next state, done]
-
+        ep_len += 1
         state_n, reward, done = gameBoard.act(action)
         fix_s = player.convertState(state)
         fix_sn = player.convertState(state_n)
-        player.collect_exp([fix_s, action, reward, fix_sn, done])
+        player.collect_exp([fix_s, action, reward/ep_len, fix_sn, done])
 
         state = state_n
         idx += 1
@@ -72,17 +78,17 @@ for i in range(episodes):
 
         next_state, reward, done = gameBoard.act(action)
 
-        total_reward += reward
         ep_len += 1
+        total_reward += reward/ep_len
         steps_to_update += 1
         state = next_state
 
         fix_s = player.convertState(state)
         fix_sn = player.convertState(state_n)
-        player.collect_exp([fix_s, action, reward, fix_sn, done])
+        player.collect_exp([fix_s, action, reward/ep_len, fix_sn, done])
 
         if steps_to_update % 4 == 0 or done:
-            temp_loss = player.train(batch_size=256)
+            temp_loss = player.train(batch_size=1024)
             losses.append(temp_loss)
         
         # render every fourth game to help speed up bc no need for rendering
@@ -115,10 +121,10 @@ for i in range(episodes):
         # clock.tick(FPS)
 
     # means game is over if running this code
-    if steps_to_update >= 175:
-        print("copying over weights")
-        player.copy_weights()
-        steps_to_update = 0
+    # if steps_to_update >= 175:
+    #     print("copying over weights")
+    #     player.copy_weights()
+    #     steps_to_update = 0
     
     player.updateEps(i)
     rewards.append(total_reward)
