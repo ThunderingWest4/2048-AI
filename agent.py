@@ -4,10 +4,10 @@ from tensorflow.keras.initializers import *
 import tensorflow as tf
 import numpy as np
 from collections import deque
+import random
 
 """
 ADD EXPERIENCE REPLAY (LEARNING FROM PAST MOVES), ACTIONS, AND HOOK IT UP TO WORKING 2048
-ALSO GET SLOWLY DECREASING EPSILON AND GRAPH THE GAME SCORE OVER TIME
 """
 
 class DQNAgent():
@@ -23,60 +23,59 @@ class DQNAgent():
         """
         self.state = state_dim
         self.action = action_dim
-        self.dqlen = dqsize
-        self.construct_net(0.001)
+        self.exps = deque(maxlen=dqsize)
         self.eps = eps_init
         self.emax = max_eps
         self.emin = min_eps
         self.edecay = eps_decay
-        
 
+        self.discount = 0.618
+        self.lr = 0.01
+
+        # reason behind this naming:
+        # instead of actor-critic, i did chef-critic
+        # because i love the image of a chef frantically
+        # trying to cook in a kitchen while a critic is in the back
+        # yelling at him to do better
+        self.chef = self.construct_net(self.lr)
+        self.critic = self.construct_net(self.lr)
+        self.copy_weights()
+
+        
     def construct_net(self, lr):
 
         layer_dims = [(16,), 24, 12, 4]
 
-        self.net = keras.Sequential()
+        net = keras.Sequential()
         init = keras.initializers.he_normal()
-        self.net.add(keras.layers.Dense(
+        net.add(keras.layers.Dense(
             24, input_shape=layer_dims[0], activation='relu', kernel_initializer=init
         )) 
         for x in layer_dims[2:-1]:
-            self.net.add(keras.layers.Dense(x, activation='relu', kernel_initializer=init))
+            net.add(keras.layers.Dense(x, activation='relu', kernel_initializer=init))
 
-        self.net.add(keras.layers.Dense(layer_dims[-1], activation='linear', kernel_initializer=init))
+        net.add(keras.layers.Dense(layer_dims[-1], activation='linear', kernel_initializer=init))
         
         # self.net = keras.Sequential(dense_layers + [q_vals])
-        self.net.compile(
+        net.compile(
             optimizer=keras.optimizers.Adam(learning_rate=lr),
             loss=tf.keras.losses.Huber(), 
             metrics=['accuracy']
         )
 
-        self.net.summary()
+        net.summary()
 
-        # inp = Input(shape=self.state)
-        # hidden1 = Dense(
-        #     25, activation="relu", kernel_initializer=he_normal()
-        # )(inp)
-        # hidden2 = Dense(
-        #     25, activation="relu", kernel_initializer=he_normal()
-        # )(hidden1)
-        # hidden3 = Dense(
-        #     25, activation="relu", kernel_initializer=he_normal()
-        # )(hidden2)
-        # q_values = Dense(
-        #     self.action, kernel_initializer=Zeros(), activation="linear"
-        # )(hidden3)
+        return net
 
-        # self.net = keras.Model(inputs=inp, outputs=[q_values])
+    def copy_weights(self):
+        self.chef.set_weights(self.critic.get_weights())
 
-        # self.net.compile(loss=tf.keras.losses.Huber(), optimizer=tf.keras.optimizers.Adam(lr=lr), metrics=['accuracy'])
 
     def act(self, state):
         s = self.convertState(state)
 
         re_s = s.reshape([1, s.shape[0]])
-        pred_distr = self.net.predict(re_s)[0]
+        pred_distr = self.chef.predict(re_s)[0]
 
         return np.argmax(pred_distr)
 
@@ -87,39 +86,53 @@ class DQNAgent():
         c = np.array([x.val for x in b]) # convert from my custom classes to nums
         return c
 
+    def collect_exp(self, vals):
+        self.exps.append(vals)
+
     def get_qs(model, state):
         return model.predict(state)[0]
 
-    def train(env, replay_memory, model, target_model, done):
-        learning_rate = 0.7 # Learning rate
-        discount_factor = 0.618
+    def train(self, batch_size):
+        # getting random samples
+        samples = random.sample(self.exps, batch_size)
+        
+        xs, ys = [], []
 
-        MIN_REPLAY_SIZE = 1000
-        if len(replay_memory) < MIN_REPLAY_SIZE:
-            return
+        cur_states = np.array([x[0] for x in samples])
+        current_qs = self.chef.predict(cur_states)
+        new_states = np.array([x[3] for x in samples])
+        future_qs = self.critic.predict(new_states)
 
-        batch_size = 64 * 2
-        mini_batch = np.random.sample(replay_memory, batch_size)
-        current_states = np.array([transition[0] for transition in mini_batch])
-        current_qs_list = model.predict(current_states)
-        new_current_states = np.array([transition[3] for transition in mini_batch])
-        future_qs_list = target_model.predict(new_current_states)
+        for idx, (cur, action, rew, s_next, done) in enumerate(samples):
+            """
+            formatting for each sample: 
+            [current state, action taken, reward from current SA, next state, done]
+            """
 
-        X = []
-        Y = []
-        for index, (observation, action, reward, new_observation, done) in enumerate(mini_batch):
             if not done:
-                max_future_q = reward + discount_factor * np.max(future_qs_list[index])
+                max_q = rew + self.discount*np.max(future_qs[idx])
             else:
-                max_future_q = reward
+                max_q = rew
 
-            current_qs = current_qs_list[index]
-            current_qs[action] = (1 - learning_rate) * current_qs[action] + learning_rate * max_future_q
+            cur_q = current_qs[idx]
+            current_qs[action] = (1-self.lr)*current_qs[action] + self.lr*max_q
 
-            X.append(observation)
-            Y.append(current_qs)
 
-        model.fit(np.array(X), np.array(Y), batch_size=batch_size, verbose=0, shuffle=True)
+            xs.append(cur)
+            ys.append(current_qs)
+
+
+        self.chef.fit(
+            np.array(xs), np.array(ys), 
+            epochs=1, 
+            batch_size=batch_size,
+            shuffle=True,
+            verbose=0,
+            use_multiprocessing=True,
+            workers=8
+        )
+
+        return 0
 
     def updateEps(self, episode: int):
         self.eps = self.emin + (self.emax - self.emin) * np.exp(-self.edecay * episode)

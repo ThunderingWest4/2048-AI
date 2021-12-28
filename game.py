@@ -75,7 +75,7 @@ class board():
             self.grid = game
             self.spawnNewTile()
 
-        self.render()
+        # self.render()
 
         compl = self.isComplete()
         self.done = False
@@ -87,7 +87,7 @@ class board():
         elif compl == -1:
             # you lost
             self.done = True
-            bonus += -2048
+            bonus -= 2048
         else:
             # game not over
             pass
@@ -129,7 +129,11 @@ class board():
                     return 2048
                 for k in [j+1, j-1]:
                     if k >= 0 and k <= 3:
-                        s += (self.grid[i][j].val == self.grid[i][k].val) or (self.grid[i][k].val == 0)
+                        s += ((self.grid[i][j].val == self.grid[i][k].val) or (self.grid[i][k].val == 0))
+
+                for k in [i+1, i-1]:
+                    if k >= 0 and k <= 3:
+                        s += (self.grid[i][j].val == self.grid[k][j].val)
         
         # s>0 means that at least one is true therefore at least one possible move
         if s>0:
