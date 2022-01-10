@@ -38,12 +38,12 @@ class CNNAgent():
         self.net = keras.Sequential()
         init = keras.initializers.he_normal()
         self.net.add(
-            Conv2D(input_shape=(4,4,16), strides=1, padding="SAME", filters=256, activation='relu', kernel_size=2)
+            Conv2D(input_shape=(4,4,16), strides=1, padding="SAME", filters=128, activation='relu', kernel_size=2)
         )
 
-        for i in range(3):
+        for i in range(2):
             self.net.add(
-                Conv2D(strides=1, padding="SAME", filters=256, activation='relu', kernel_size=2)
+                Conv2D(strides=1, padding="SAME", filters=128, activation='relu', kernel_size=2)
             )
 
         self.net.add(
@@ -67,17 +67,32 @@ class CNNAgent():
         s = self.convertState(state)
 
         re_s = s.reshape([1, s.shape[0]])
-        pred_distr = self.chef.predict(re_s)[0]
+        pred_distr = self.net.predict(re_s)[0]
 
         return np.argmax(pred_distr)
 
     def convertState(self, s):
         # convert the state array from an array of custom cell/void items to an array of numbers readable by tensorflow
-        a = np.array([np.array([y.val for y in x]) for x in s]) # converting s into a bunch of np.arrays
+        # super inefficient
+        # a = np.array(
+        #     [
+        #         np.array(
+        #             [
+        #                 np.array(
+        #                     [i == (0 if y.val==0 else np.math.log2(y.val)) for i in range(16)]
+        #                 ) for y in x
+        #             ]
+        #         ) for x in s
+        #     ]
+        # issue: repeats indices
+        for i in range(4):
+            for k in range(4):
+                v = s[i][k].val
+                j = [0]*16
+                j[int(v if v==0 else np.math.log2(v))] = 1
+                s[i][k] = j
         
-        # now converting into the 4x4x16 channels for conv2d
-        # current shape is 32x4x4
-        return a
+        return s
 
     def collect_exp(self, vals):
         self.exps.append(vals)

@@ -39,7 +39,8 @@ for i in range(min_exp):
         state_n, reward, done = gameBoard.act(action)
         fix_s = player.convertState(state)
         fix_sn = player.convertState(state_n)
-        player.collect_exp([fix_s, action, reward/ep_len, fix_sn, done])
+        reward = reward/np.log(ep_len)
+        player.collect_exp([fix_s, action, reward, fix_sn, done])
 
         state = state_n
         idx += 1
@@ -48,7 +49,7 @@ for i in range(min_exp):
 
 print("EXPERIENCE REPLAY INITIALIZED")
 
-episodes = 20_000
+episodes = 200
 rewards = []
 episode_lens = []
 losses = []
@@ -79,21 +80,22 @@ for i in range(episodes):
         next_state, reward, done = gameBoard.act(action)
 
         ep_len += 1
-        total_reward += reward/ep_len
+        reward /= np.log(ep_len)
+        total_reward += reward
         steps_to_update += 1
         state = next_state
 
         fix_s = player.convertState(state)
         fix_sn = player.convertState(state_n)
-        player.collect_exp([fix_s, action, reward/ep_len, fix_sn, done])
+        player.collect_exp([fix_s, action, reward, fix_sn, done])
 
         if steps_to_update % 4 == 0 or done:
             temp_loss = player.train(batch_size=1024)
             losses.append(temp_loss)
         
         # render every fourth game to help speed up bc no need for rendering
-        if i%4==0:
-            gameBoard.render()
+        # if i%1==0:
+        gameBoard.render()
 
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
