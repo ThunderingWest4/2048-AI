@@ -1,3 +1,4 @@
+from grpc import stream_stream_rpc_method_handler
 from numpy.core.defchararray import translate
 from numpy.core.fromnumeric import transpose
 import pygame as pg
@@ -23,6 +24,7 @@ class board():
         self.scrn = screen
         self.res = res
         self.font = font
+        self.streak = 0
 
     def reset(self, dims: tuple):
         self.dimX = dims[0]
@@ -33,6 +35,7 @@ class board():
         self.grid[random.randint(0, 3)][random.randint(0, 3)] = cell()
 
         self.done = False
+        self.streak = 0
 
         return self.grid # initial state
 
@@ -77,9 +80,27 @@ class board():
 
         # self.render()
 
+        """
+        more bonuses to incentivize program to git gud: 
+        - streaks, (1+(0.1*x))*score if x>=1 where 'x' is the number of consecutive moves made that resulted in tiles being combined
+        - - what if it was something like incrementing multiplier and for every move it doesnt score, it's decremented by 0.1 to a min of 1 to have it look beyond a single turn?
+        - - combo for more tiles per turn bonus?
+        - new high score, (1.5*new tile score) if it gets a new high tile (i.e. hits 8 for the first time, 16, etc.) 
+        - some sort of addl time based bonus? maybe smth like (below)
+        - - reward_step = (net score increase with chain/combo/new tile bonuses) + some regulizer to balance the multiplier * e^(game_len)
+        - - issue is balancing the regulizer to allow score to incr and get boosted from longer game len w/o overshadowing the initial net score and making the net focus on surviving instead of higher scoring
+        """
+
         compl = self.isComplete()
         self.done = False
         bonus = self.score - scoreInit
+        if bonus > 0:
+            self.streak += 1 # means that it merged at least one tile
+            mult = 1+(0.2*self.streak)
+            bonus *= mult # bonus = bonus*mult
+        else:
+            self.streak = 0 # reset sterak if broken
+
         if compl == 2048:
             # computer won
             bonus += 2048 # big bonus
@@ -158,7 +179,7 @@ class board():
 
     def render(self):
 
-        pg.display.set_caption(f"Score: {self.score}")
+        pg.display.set_caption(f"Score: {self.score} | Streak Mult: {1+(0.2*self.streak)}")
 
         self.scrn.fill((0, 0, 0)) # clear screen before rendering
 

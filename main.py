@@ -22,7 +22,9 @@ max_eps = 1
 min_eps = 0.01
 eps_decay = 0.01
 
-player = CNNAgent((4, 4), 4, 30_000, epsilon, min_eps, max_eps, eps_decay)
+# player = CNNAgent((4, 4), 4, 30_000, epsilon, min_eps, max_eps, eps_decay)
+player = DQNAgent((4,4), 4, 30_000, epsilon, min_eps, max_eps, eps_decay)
+dqn = True
 
 # collecting initial experiences
 min_exp = 2_000
@@ -80,7 +82,8 @@ for i in range(episodes):
         next_state, reward, done = gameBoard.act(action)
 
         ep_len += 1
-        reward /= np.log(ep_len)
+        # reward /= np.log(ep_len)
+        reward = reward + 1.25*ep_len
         total_reward += reward
         steps_to_update += 1
         state = next_state
@@ -123,11 +126,13 @@ for i in range(episodes):
         # clock.tick(FPS)
 
     # means game is over if running this code
-    # if steps_to_update >= 175:
-    #     print("copying over weights")
-    #     player.copy_weights()
-    #     steps_to_update = 0
-    
+    if dqn:
+        # added if-else to easlily switch btwn CNN/DQN w/o too much fiddling
+        if steps_to_update >= 175:
+            print("copying over weights")
+            player.copy_weights()
+            steps_to_update = 0
+        
     player.updateEps(i)
     rewards.append(total_reward)
     episode_lens.append(ep_len)
