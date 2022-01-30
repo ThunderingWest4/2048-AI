@@ -25,6 +25,7 @@ class board():
         self.res = res
         self.font = font
         self.streak = 0
+        self.maxtile = 0
 
     def reset(self, dims: tuple):
         self.dimX = dims[0]
@@ -36,6 +37,7 @@ class board():
 
         self.done = False
         self.streak = 0
+        self.maxtile = 0
 
         return self.grid # initial state
 
@@ -118,6 +120,7 @@ class board():
         return (self.grid, bonus, self.done)
                 
     def isEqual(self, mat1, mat2):
+        # updated is mat2, current is mat1, checking if they're equal/any change
         if(np.size(mat1) != np.size(mat2)):
             self.visMat(mat1)
             self.visMat(mat2)
@@ -126,6 +129,9 @@ class board():
         equal = True
         for i in range(self.dimX):
             for j in range(self.dimY):
+                if mat2[i][j].val > self.maxtile: 
+                    self.maxtile = mat2[i][j].val
+
                 equal = equal and (mat1[i][j].val == mat2[i][j].val)
         
         return equal
@@ -141,7 +147,7 @@ class board():
 
 
     def isComplete(self):
-        has2048 = False
+        # checks if game over
         s = 0
         for i in range(4):
             for j in range(4):

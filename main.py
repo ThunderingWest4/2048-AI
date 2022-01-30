@@ -51,10 +51,11 @@ for i in range(min_exp):
 
 print("EXPERIENCE REPLAY INITIALIZED")
 
-episodes = 200
+episodes = 500
 rewards = []
 episode_lens = []
 losses = []
+max_tiles = []
 
 for i in range(episodes):
     
@@ -102,6 +103,7 @@ for i in range(episodes):
 
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
+                # manual controls for 2048
                 # if event.key == pygame.K_DOWN:
                 #     gameBoard.act(0)
                 # elif event.key == pygame.K_UP:
@@ -136,9 +138,11 @@ for i in range(episodes):
     player.updateEps(i)
     rewards.append(total_reward)
     episode_lens.append(ep_len)
-    print(f"Completed episode {i} with total reward of {total_reward} with epsilon {player.eps}")
+    max_tiles.append(gameBoard.maxtile)
+    print(f"Completed episode {i} with total reward of {total_reward} with epsilon {player.eps} amd highest tile {max_tiles[-1]}")
 
 plt.plot(rewards)
 plt.plot(episode_lens)
+plt.plot(max_tiles)
 
 plt.show()
