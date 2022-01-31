@@ -51,7 +51,7 @@ for i in range(min_exp):
 
 print("EXPERIENCE REPLAY INITIALIZED")
 
-episodes = 500
+episodes = 200
 rewards = []
 episode_lens = []
 losses = []
@@ -84,7 +84,13 @@ for i in range(episodes):
 
         ep_len += 1
         # reward /= np.log(ep_len)
-        reward = reward + 1.25*ep_len
+        # bot cheesed my gosh darn bad code
+        # old reward algo: 
+        # reward += 1.25*ep_len
+        # except it could make a move that made no change on the board and still get rewarded because it 'survived'
+        # so it kept making no change moves to cheese my bad code for free reward
+        # idk if i should be proud, angry, confused, checking my code for more bugs, or all of the above
+        reward += 1.25*ep_len if reward != 0 else 0
         total_reward += reward
         steps_to_update += 1
         state = next_state
