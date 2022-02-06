@@ -57,6 +57,7 @@ class board():
         # taking score at beginning of round, doing the stuff, then finding the difference
         # for net reward
         scoreInit = self.score
+        maxInit = self.maxtile
 
 
         # method functions are weird, idk why they're like this but don't question it
@@ -98,10 +99,13 @@ class board():
         bonus = self.score - scoreInit
         if bonus > 0:
             self.streak += 1 # means that it merged at least one tile
-            mult = 1+(0.2*self.streak)
+            mult = 1+(0.125*self.streak) # nerfed streak for balance
             bonus *= mult # bonus = bonus*mult
+            if self.maxtile > maxInit: 
+                # new maxtile
+                bonus += 1.5 * self.maxtile
         else:
-            self.streak = 0 # reset sterak if broken
+            self.streak = 0
 
         if compl == 2048:
             # computer won

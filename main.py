@@ -27,7 +27,7 @@ player = DQNAgent((4,4), 4, 30_000, epsilon, min_eps, max_eps, eps_decay)
 dqn = True
 
 # collecting initial experiences
-min_exp = 2_000
+min_exp = 5_000
 idx = 0
 for i in range(min_exp):
     state = gameBoard.reset((4, 4))
@@ -41,7 +41,7 @@ for i in range(min_exp):
         state_n, reward, done = gameBoard.act(action)
         fix_s = player.convertState(state)
         fix_sn = player.convertState(state_n)
-        reward = reward/np.log(ep_len)
+        # reward += 10*np.log2(ep_len) if reward != 0 else 0
         player.collect_exp([fix_s, action, reward, fix_sn, done])
 
         state = state_n
@@ -51,7 +51,7 @@ for i in range(min_exp):
 
 print("EXPERIENCE REPLAY INITIALIZED")
 
-episodes = 200
+episodes = 500
 rewards = []
 episode_lens = []
 losses = []
@@ -90,7 +90,7 @@ for i in range(episodes):
         # except it could make a move that made no change on the board and still get rewarded because it 'survived'
         # so it kept making no change moves to cheese my bad code for free reward
         # idk if i should be proud, angry, confused, checking my code for more bugs, or all of the above
-        reward += 1.25*ep_len if reward != 0 else 0
+        # reward += 10*np.log2(ep_len) if reward != 0 else 0
         total_reward += reward
         steps_to_update += 1
         state = next_state
